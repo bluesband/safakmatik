@@ -22,7 +22,7 @@ function safakmatik_menu() {
   return $items;
 }
 /**
-  * Main function for calculating remained days
+  * Main function for calculating remained_days
   */
 function calculate_remaining_days($begin_date, $used_vacation, $road_vacation, $military_type)
 {
