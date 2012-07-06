@@ -1,0 +1,4 @@
+name = safakmatik
+description = Countdown tool for Turkish military personnel.
+package = SafakMatik
+core = 7.x

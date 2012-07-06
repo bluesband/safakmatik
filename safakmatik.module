@@ -1,0 +1,141 @@
+﻿<?php
+
+/**
+ * Implements hook_menu().
+ */
+function safakmatik_menu() {
+
+  $items = array();
+  $items['safakmatik'] = array(
+    'access arguments' => array('access content'),
+    'title' => 'ŞafakMatik',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('safakmatik_form'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['safakmatik/sonuc'] = array(
+    'access arguments' => array('access content'),
+    'title' => 'Şafak Bilgileri,
+    'page callback' => 'safakmatik_start',
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+/**
+  * Main function for calculating remained days
+  */
+function calculate_remaining_days($begin_date, $used_vacation, $road_vacation, $military_type)
+{
+    if($used_vacation=="" || empty($used_vacation)) {
+        $used_vacation=0;
+	}
+    if($road_vacation=="" || empty($road_vacation)) {
+        $road_vacation=0;
+	}
+    if($military_type=="KD")
+    {
+        $vacation_right=12;
+        $total_decrease_days=($vacation_right-$used_vacation)+$road_vacation;
+        $newdate = strtotime ( '+6 month' , strtotime ( $begin_date ) ) ;    
+    }
+        elseif($military_type=="UD")
+        {
+            $vacation_right=30;
+            $total_decrease_days=($vacation_right-$used_vacation)+$road_vacation;
+            $newdate = strtotime ( '+15 month' , strtotime ( $begin_date ) ) ;
+        }
+            else
+            {
+                $vacation_right=30;
+                $total_decrease_days=($vacation_right-$used_vacation)+$road_vacation;
+                $newdate = strtotime ( '+12 month' , strtotime ( $begin_date ) ) ;
+            }
+    $newdate = date ( 'd.m.Y' , $newdate );
+    $newdate = strtotime ( '-'.$total_decrease_days.' days' , strtotime ( $newdate ) ) ;
+    $newdate = date ( 'd.m.Y' , $newdate );
+    $end_date = $newdate;
+    
+    $today= date("d.m.Y", time()); 
+    $datediff = strtotime($end_date) - strtotime($today);
+    $remained_days = round($datediff/(60*60*24));
+    
+    $output["today"]=$today;
+    $output["beginning"]=$begin_date;
+    $output["remained_days"]=$remained_days;
+    $output["end_date"]=$end_date;
+    return $output;
+}
+function safakmatik_form($form, &$form_state){
+    $form['safakmatik_veriler'] = array(
+        '#weight' => 5,
+    );
+    $form['safakmatik_veriler']['beginning'] = array(
+        '#type' => 'date',
+        '#title' => t('Sülüs Tarihi'),
+        '#size' => 20,
+        '#description' => t('Resmi olarak askerliğinizin başladığı tarih.'),
+    );
+    $form['safakmatik_veriler']['usedvacation'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Kullanılan İzin'),
+        '#size' => 20,
+        '#default_value' => '0',
+        '#element_validate' => array('element_validate_number'),
+        '#description' => t('Şimdiye kadar kaç gün izin kullandınız?'),
+    );
+    $form['safakmatik_veriler']['roadvacation'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Yol İzni'),
+        '#size' => 20,
+        '#default_value' => '0',
+        '#element_validate' => array('element_validate_number'),
+        '#description' => t('Terhis olurken kaç gün yol izni alacaksınız?'),
+    );
+    $form['safakmatik_veriler']['militarytype'] = array(
+        '#type' => 'select',
+        '#title' => t('Askerlik Türü'),
+        '#description' => t('Kısa Dönem, Uzun Dönem ya da Yedek Subay.'),
+        '#options' => array(
+                'UD' => t('Uzun Dönem'),
+                'KD' => t('Kısa Dönem'),
+                'YS' => t('Yedek Subay')
+                ),
+    );
+  $form['safakmatik_veriler']['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Hesapla'),
+    );
+return $form;
+}
+function safakmatik_form_submit($form, &$form_state) {
+    $form_values = $form_state['values'];
+    $beginning=$form_values["beginning"]["day"].".".$form_values["beginning"]["month"].".".$form_values["beginning"]["year"];
+    $used_vacation=$form_values["usedvacation"];
+    $roadvacation=$form_values["roadvacation"];
+    $militarytype=$form_values["militarytype"];
+        $args = calculate_remaining_days($beginning,$used_vacation,$roadvacation,$militarytype);
+            drupal_goto('safakmatik/sonuc', array('query'=>array(
+            'today'=>$args["today"],
+            'beginning'=>$args["beginning"],
+            'remained_days'=>$args["remained_days"],
+            'end_date'=>$args["end_date"],
+            )));
+}
+
+function safakmatik_start() { 
+    $params = drupal_get_query_parameters();
+    $args["today"]=$params["today"];
+    $args["beginning"]=$params["beginning"];
+    $args["remained_days"]=$params["remained_days"];
+    $args["end_date"]=$params["end_date"];
+    return theme('safakmatik' , $args);
+}
+
+function safakmatik_theme() {
+  return array(
+     'safakmatik' => array(
+      'template' => 'safakmatik',
+     'variables' => array('args' => array()),
+    ),
+  );
+}
